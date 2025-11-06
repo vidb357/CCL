@@ -1,0 +1,343 @@
+1. YACC program for Postfix Expression Evaluation
+
+<pos.l>
+%{
+#include "pos.tab.h"
+#include <stdlib.h>
+%}
+
+%option noyywrap
+
+DIGIT   [0-9]+
+
+%%
+
+{DIGIT}   { yylval = atoi(yytext); return ID; }
+[\n]      { return '\n'; }
+[ \t]     ;   /* ignore spaces and tabs */
+"+"       { return '+'; }
+"-"       { return '-'; }
+"*"       { return '*'; }
+"/"       { return '/'; }
+
+.         ;   /* ignore any other character */
+
+%%
+
+<pos.y>
+%{
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+
+/* Forward declarations */
+int yylex(void);
+void yyerror(const char *s);
+
+/* Stack implementation */
+void push(int val);
+int pop(void);
+int top(void);
+
+int stack[100];
+int topIndex = -1;
+%}
+
+%token ID
+
+%%
+
+input:
+      /* empty */
+    | input line
+    ;
+
+line:
+      expr '\n' { printf("= %d\n", top()); topIndex = -1; } /* reset stack */
+    ;
+
+expr:
+      expr expr '+'   { int b=pop(); int a=pop(); push(a+b); }
+    | expr expr '-'   { int b=pop(); int a=pop(); push(a-b); }
+    | expr expr '*'   { int b=pop(); int a=pop(); push(a*b); }
+    | expr expr '/'   { int b=pop(); int a=pop(); 
+                        if(b==0){ yyerror("division by zero"); } 
+                        else push(a/b); }
+    | ID              { push($1); }
+    ;
+
+%%
+
+/* --- Stack functions --- */
+void push(int val) {
+    stack[++topIndex] = val;
+}
+
+int pop(void) {
+    return stack[topIndex--];
+}
+
+int top(void) {
+    return stack[topIndex];
+}
+
+/* --- Error handling --- */
+void yyerror(const char *s) {
+    fprintf(stderr, "Error: %s\n", s);
+}
+
+/* --- Main entry --- */
+int main(void) {
+    printf("Enter postfix expression (Ctrl+Z to exit on Windows):\n");
+    return yyparse();
+}
+
+
+_______TERMINAL______________
+bison -d pos.y
+flex pos.l
+gcc lex.yy.c pos.tab.c -o parser.exe
+.\parser.exe
+
+______________________________________________________________
+________________________________________________________________
+2. YACC program for Conversion of Infix to Postfix expression.
+
+<infix.l>
+
+%{
+#include "infix.tab.h"
+#include <stdlib.h>
+#include <string.h>
+
+char postfix[100];  // to store postfix expression
+int posIndex = 0;   // current index in postfix array
+%}
+
+%option noyywrap
+
+DIGIT   [0-9]+
+OP      [\+\-\*/\(\)]
+
+%%
+
+{DIGIT} { 
+    yylval = atoi(yytext); 
+    return ID; 
+}
+
+{OP}    { return yytext[0]; }
+
+[\n]    { return '\n'; }
+
+[ \t]   ;   /* ignore spaces and tabs */
+
+.       ;   /* ignore any other character */
+
+%%
+
+
+<infix.y>
+
+%{
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* Forward declarations */
+int yylex(void);
+void yyerror(const char *s);
+
+void push(char c);
+char pop(void);
+char peek(void);
+int precedence(char c);
+void handle_op(char op);
+
+extern char postfix[100];
+extern int posIndex;
+
+/* Stack for operators */
+char stack[100];
+int topIndex = -1;
+
+%}
+
+/* Operator precedence and associativity */
+%left '+' '-'
+%left '*' '/'
+%right UMINUS  /* unary minus if needed */
+
+%token ID
+
+%%
+
+input:
+      /* empty */
+    | input line
+    ;
+
+line:
+      expr '\n' { 
+          while(topIndex >= 0) postfix[posIndex++] = pop(); // pop remaining operators
+          postfix[posIndex] = '\0';
+          printf("Postfix: %s\n", postfix); 
+          posIndex = 0; topIndex = -1;  // reset for next expression
+      }
+    ;
+
+expr:
+      ID              { 
+                        char buf[12];
+                        sprintf(buf, "%d", $1); 
+                        for(int i=0; buf[i]!='\0'; i++)
+                            postfix[posIndex++] = buf[i];
+                        postfix[posIndex++] = ' ';  // space separator
+                      }
+    | '(' expr ')'    { /* handled by operator stack */ }
+    | expr '+' expr   { handle_op('+'); }
+    | expr '-' expr   { handle_op('-'); }
+    | expr '*' expr   { handle_op('*'); }
+    | expr '/' expr   { handle_op('/'); }
+    ;
+
+%%
+
+/* --- Stack functions --- */
+void push(char c) {
+    stack[++topIndex] = c;
+}
+
+char pop(void) {
+    return stack[topIndex--];
+}
+
+char peek(void) {
+    if(topIndex == -1) return '\0';
+    return stack[topIndex];
+}
+
+int precedence(char c) {
+    if(c=='+'||c=='-') return 1;
+    if(c=='*'||c=='/') return 2;
+    return 0;
+}
+
+/* --- Operator handling --- */
+void handle_op(char op) {
+    while(topIndex >=0 && precedence(peek()) >= precedence(op)) {
+        postfix[posIndex++] = pop();
+        postfix[posIndex++] = ' ';
+    }
+    push(op);
+}
+
+/* --- Error handling --- */
+void yyerror(const char *s) {
+    fprintf(stderr, "Error: %s\n", s);
+}
+
+/* --- Main entry --- */
+int main(void) {
+    printf("Enter infix expressions (Ctrl+Z to exit on Windows):\n");
+    return yyparse();
+}
+
+
+
+____________1.YACC program for evaluating postfix expressions containing decimal numbers.__________________
+
+<postfix_float.l>
+%{
+#include "postfix_float.tab.h"
+#include <stdlib.h>
+%}
+
+%option noyywrap
+
+FLOAT   [0-9]+(\.[0-9]+)?
+
+%%
+
+{FLOAT} { 
+    yylval.fval = atof(yytext); 
+    return FNUM; 
+}
+
+"+"     { return '+'; }
+"-"     { return '-'; }
+"*"     { return '*'; }
+"/"     { return '/'; }
+
+[\n]    { return '\n'; }
+
+[ \t]   ;   /* ignore spaces and tabs */
+.       ;   /* ignore other characters */
+
+%%
+
+<postfix_float.y>
+%{
+#include <stdio.h>
+#include <stdlib.h>
+
+/* Forward declarations */
+int yylex(void);
+void yyerror(const char *s);
+
+/* Stack for floating-point numbers */
+double stack[100];
+int topIndex = -1;
+
+/* Stack functions */
+void push(double val);
+double pop(void);
+double peek(void);
+%}
+
+%union {
+    double fval;
+}
+
+%token <fval> FNUM
+
+%%
+
+input:
+      /* empty */
+    | input line
+    ;
+
+line:
+      expr '\n' { 
+          printf("= %g\n", peek()); 
+          topIndex = -1;  // reset for next expression
+      }
+    ;
+
+expr:
+      expr expr '+'   { double b=pop(); double a=pop(); push(a+b); }
+    | expr expr '-'   { double b=pop(); double a=pop(); push(a-b); }
+    | expr expr '*'   { double b=pop(); double a=pop(); push(a*b); }
+    | expr expr '/'   { double b=pop(); double a=pop(); 
+                        if(b==0){ yyerror("division by zero"); } 
+                        else push(a/b); }
+    | FNUM            { push($1); }
+    ;
+
+%%
+
+void push(double val) { stack[++topIndex] = val; }
+double pop(void) { return stack[topIndex--]; }
+double peek(void) { return stack[topIndex]; }
+
+void yyerror(const char *s) { fprintf(stderr, "Error: %s\n", s); }
+
+int main(void) {
+    printf("Enter postfix expressions (Ctrl+Z to exit on Windows):\n");
+    return yyparse();
+}
+ 
+
+
+
