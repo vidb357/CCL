@@ -1,0 +1,138 @@
+
+
+
+%{
+#include <stdio.h>
+#include <ctype.h>
+%}
+
+%%
+[a-z]   { putchar(toupper(yytext[0])); }   // lowercase → uppercase
+[A-Z]   { putchar(tolower(yytext[0])); }   // uppercase → lowercase
+.       { putchar(yytext[0]); }            // other characters unchanged
+%%
+
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        printf("Usage: %s input_file\n", argv[0]);
+        return 1;
+    }
+
+    FILE *fin = fopen(argv[1], "r");
+    if (!fin) {
+        perror("Error opening input file");
+        return 1;
+    }
+
+    yyin = fin;   // tell Lex to read from the file
+    yylex();
+
+    fclose(fin);
+    return 0;
+}
+
+int yywrap() {
+    return 1;
+}
+
+Practice:
+1.	LEX code to check whether the given character is in upper case, or in lower case or non-alphabetic character.
+
+%{
+#include <stdio.h>
+#include <ctype.h>
+%}
+
+%%
+[a-z]   { printf("Lowercase character: %s\n", yytext); }
+[A-Z]   { printf("Uppercase character: %s\n", yytext); }
+.       { printf("Non-alphabetic character: %s\n", yytext); }
+%%
+
+int main() {
+    printf("Enter characters: ");
+    yylex();
+    return 0;
+}
+
+int yywrap() { return 1; }
+
+2. LEX code to count the lowercase, upper case characters in the given input file.
+%
+#include <stdio.h>
+
+int lower_count = 0;
+int upper_count = 0;
+%}
+
+%%
+[a-z]   { lower_count++; }
+[A-Z]   { upper_count++; }
+.       { /* ignore other characters */ }
+%%
+
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        p {
+rintf("Usage: %s input_file\n", argv[0]);
+        return 1;
+    }
+
+    FILE *fin = fopen(argv[1], "r");
+    if (!fin) {
+        perror("Error opening file");
+        return 1;
+    }
+
+    yyin = fin;
+    yylex();
+    fclose(fin);
+
+    printf("Lowercase letters: %d\n", lower_count);
+    printf("Uppercase letters: %d\n", upper_count);
+    return 0;
+}
+
+int yywrap() { return 1; }
+
+
+
+
+
+1. LEX code for case conversion of alphabets using file handling.
+
+%{
+#include <stdio.h>
+#include <ctype.h>
+%}
+
+%%
+[a-z]   { putchar(toupper(yytext[0])); }   // lowercase → uppercase
+[A-Z]   { putchar(tolower(yytext[0])); }   // uppercase → lowercase
+.       { putchar(yytext[0]); }            // other characters unchanged
+%%
+
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        printf("Usage: %s input_file\n", argv[0]);
+        return 1;
+    }
+
+    FILE *fin = fopen(argv[1], "r");
+    if (!fin) {
+        perror("Error opening input file");
+        return 1;
+    }
+
+    yyin = fin;   // tell Lex to read from the file
+    yylex();
+
+    fclose(fin);
+    return 0;
+}
+
+int yywrap() {
+    return 1;
+}
+ 
+
