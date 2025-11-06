@@ -1,0 +1,165 @@
+%{
+#include <stdio.h>
+#include <stdlib.h>
+%}
+
+%%
+[0-9]+        { long dec = atol(yytext); printf("%lX", dec); }   // decimal → hex
+[A-Za-z]+     { printf("%s", yytext); }                           // words as-is
+[ \t\n]       { printf("%s", yytext); }                           // spaces, tabs, newlines
+.             { printf("%s", yytext); }                           // other characters
+%%
+
+int main() {
+    printf("Enter input (Ctrl+D to stop):\n");
+    yylex();      // read from keyboard directly
+    return 0;
+}
+
+int yywrap() { return 1; }
+
+
+__________FILE_________________   
+
+
+(Conversion of decimal to hexadecimal number in a file)
+
+%{
+#include <stdio.h>
+#include <stdlib.h>
+%}
+
+%%
+
+[0-9]+ {
+    long dec = atol(yytext);
+    printf("%lX", dec);  }
+
+[A-Za-z]+ {
+    printf("%s", yytext);  
+}
+
+[ \t\n] {
+    printf("%s", yytext);  
+}
+
+. {
+    printf("%s", yytext);  }
+
+%%
+
+int yywrap() {
+    return 1;
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Usage: %s <input_file>\n", argv[0]);
+        return 1;
+    }
+    yyin = fopen(argv[1], "r");
+    if (!yyin) {
+        perror("Error opening file");
+        return 1;
+    }
+    yylex();
+    fclose(yyin);
+    return 0;
+}
+
+
+___________decimal to binary_______________
+%{
+#include <stdio.h>
+#include <math.h>
+
+void convert_to_binary(double num) {
+    long int_part = (long)num;
+    double frac_part = num - int_part;
+    int binary_int[64], i = 0;
+
+    // Convert integer part
+    if (int_part == 0) {
+        binary_int[i++] = 0;
+    } else {
+        while (int_part > 0) {
+            binary_int[i++] = int_part % 2;
+            int_part /= 2;
+        }
+    }
+
+    // Print integer part in reverse
+    for (int j = i - 1; j >= 0; j--)
+        printf("%d", binary_int[j]);
+
+    // Convert fractional part
+    if (frac_part > 0) {
+        printf(".");
+        int count = 0;
+        while (frac_part > 0 && count < 10) { // limit to 10 binary places
+            frac_part *= 2;
+            int bit = (int)frac_part;
+            printf("%d", bit);
+            frac_part -= bit;
+            count++;
+        }
+    }
+}
+%}
+
+%option noyywrap
+
+DIGIT   [0-9]
+NUMBER  {DIGIT}+(\.{DIGIT}+)?
+
+%%
+{NUMBER}    {
+                double num;
+                sscanf(yytext, "%lf", &num);
+                printf("Binary of %s = ", yytext);
+                convert_to_binary(num);
+                printf("\n");
+            }
+.|\n        { /* Ignore other characters */ }
+%%
+
+int main() {
+    printf("Enter a decimal number: ");
+    yylex();
+    return 0;
+}
+
+
+______terminal____
+
+gcc lex.yy.c -o dtb -lm
+.\dtb.exe
+
+
+_______hex to dec_________
+
+%{
+#include <stdio.h>
+#include <stdlib.h>
+%}
+
+%option noyywrap
+
+%%
+
+(0[xX])?[0-9a-fA-F]+   {
+                            long decimal_value = strtol(yytext, NULL, 16);
+                            printf("Hexadecimal: %s -> Decimal: %ld\n", yytext, decimal_value);
+                        }
+
+[ \t\n]+                ;   // Ignore spaces, tabs, and newlines
+.                       { printf("Invalid input: %s\n", yytext); }
+
+%%
+
+int main() {
+    printf("Enter a hexadecimal number (e.g., 0x1A3F or 1A3F): ");
+    yylex();
+    return 0;
+}
+
