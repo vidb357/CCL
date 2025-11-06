@@ -1,0 +1,142 @@
+____com______
+
+%{
+#include <stdio.h>
+int count = 0;   // counter for lines ending with "com"
+%}
+
+%option noyywrap
+
+%%
+.*com\n     { count++; }    // line ends with "com"
+.*\n        ;               // other lines — ignore
+%%
+
+int main() {
+    printf("Enter lines (Ctrl+D to stop):\n");
+    yylex();    // read from keyboard directly
+    printf("\nTotal lines ending with 'com' = %d\n", count);
+    return 0;
+}
+
+
+_file________________________
+
+
+
+%{
+#include <stdio.h>
+int count = 0;   // counter for lines ending with "com"
+FILE *yyin;
+%}
+
+%option noyywrap
+
+%%
+
+.*com\n        { count++; }   // any line ending with "com"
+.*\n           ;              // other lines, just skip
+
+%%
+
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Usage: %s <inputfile>\n", argv[0]);
+        return 1;
+    }
+
+    yyin = fopen(argv[1], "r");
+    if (!yyin) {
+        perror("Error opening file");
+        return 1;
+    }
+
+    yylex();
+    fclose(yyin);
+
+    printf("\nTotal lines ending with 'com' = %d\n", count);
+    return 0;
+}
+
+____________2. Lex program to count URs ending with "org”._________________
+
+%{
+#include <stdio.h>
+int count = 0;   // counter for URLs ending with "org"
+FILE *yyin;
+%}
+
+%option noyywrap
+
+%%
+
+(https?:\/\/)?[a-zA-Z0-9\.\-]+\.org(\n|\/)?   { count++; }   // match URLs ending with "org"
+
+.|\n   ;   // ignore everything else
+
+%%
+
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Usage: %s <inputfile>\n", argv[0]);
+        return 1;
+    }
+
+    yyin = fopen(argv[1], "r");
+    if (!yyin) {
+        perror("Error opening file");
+        return 1;
+    }
+
+    yylex();
+    fclose(yyin);
+
+    printf("\nTotal URLs ending with 'org' = %d\n", count);
+    return 0;
+}
+
+________Edu________________
+%{
+#include <stdio.h>
+int count = 0;   // counter for URLs ending with "edu"
+FILE *yyin;
+%}
+
+%option noyywrap
+
+%%
+
+(https?:\/\/)?[a-zA-Z0-9\.\-]+\.edu(\n|\/)?   { count++; }   // match URLs ending with "edu"
+
+.|\n   ;   // ignore everything else
+
+%%
+
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Usage: %s <inputfile>\n", argv[0]);
+        return 1;
+    }
+
+    yyin = fopen(argv[1], "r");
+    if (!yyin) {
+        perror("Error opening file");
+        return 1;
+    }
+
+    yylex();
+    fclose(yyin);
+
+    printf("\nTotal URLs ending with 'edu' = %d\n", count);
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
