@@ -1,0 +1,195 @@
+1.	YACC program for desk calculator with error recovery.
+
+<desk.l>
+
+%{
+#include "desk.tab.h"
+#include <stdlib.h>
+%}
+
+digit   [0-9]
+number  ({digit}+(\.{digit}*)?)|(\.{digit}+)
+
+%%
+
+{number}    { yylval.val = atof(yytext); return NUMBER; }
+\n          { return '\n'; }
+[ \t]       ;   /* ignore whitespace */
+.           { return yytext[0]; }
+
+%%
+
+int yywrap() { return 1; }
+
+
+<desk.y>___________________________
+
+%{
+#include <stdio.h>
+#include <stdlib.h>
+
+void yyerror(const char *s);
+int yylex(void);
+
+%}
+
+%union {
+    double val;
+}
+
+%token <val> NUMBER
+%type  <val> expr line
+
+%left '+' '-'
+%left '*' '/'
+%right UMINUS
+
+%%
+
+input:
+    /* empty */
+  | input line
+  ;
+
+line:
+    expr '\n'   { printf("Answer: %.2f\n", $1); }
+  | error '\n'  { yyerror("Invalid expression, try again."); yyclearin; }
+  ;
+
+expr:
+    expr '+' expr   { $$ = $1 + $3; }
+  | expr '-' expr   { $$ = $1 - $3; }
+  | expr '*' expr   { $$ = $1 * $3; }
+  | expr '/' expr   {
+                        if ($3 == 0) {
+                            yyerror("Division by zero");
+                            YYERROR;   /* jump to error rule, skip result */
+                        } else {
+                            $$ = $1 / $3;
+                        }
+                    }
+  | '-' expr %prec UMINUS { $$ = -$2; }
+  | '(' expr ')'          { $$ = $2; }
+  | NUMBER
+  ;
+
+%%
+
+void yyerror(const char *s) {
+    fprintf(stderr, "Error: %s\n", s);
+}
+
+int main() {
+    printf("Enter expressions (Ctrl+Z to exit on Windows):\n");
+    yyparse();
+    return 0;
+}
+_________________________________
+
+TERMINAL__________________
+bison -d desk.y
+flex desk.l
+gcc lex.yy.c desk.tab.c -o desk.exe -lm
+.\desk.exe
+______________________________________________
+
+2.	YACC program for desk calculators to evaluate arithmetic expressions involving parenthesis.
+
+<paren_calc.l>
+
+%{
+#include "paren_calc.tab.h"
+#include <stdlib.h>
+%}
+
+digit   [0-9]
+number  ({digit}+(\.{digit}*)?)|(\.{digit}+)
+
+%%
+
+{number}    { yylval.val = atof(yytext); return NUMBER; }
+\n          { return '\n'; }
+[ \t]       ;   /* ignore whitespace */
+.           { return yytext[0]; }
+
+%%
+
+int yywrap() { return 1; }
+
+
+
+
+
+
+
+
+
+
+
+
+<paren_calc.y>
+
+%{
+#include <stdio.h>
+#include <stdlib.h>
+
+void yyerror(const char *s);
+int yylex(void);
+
+%}
+
+%union {
+    double val;
+}
+
+%token <val> NUMBER
+%type  <val> expr line
+
+%left '+' '-'
+%left '*' '/'
+%right UMINUS   /* unary minus */
+
+%%
+
+input:
+    /* empty */
+  | input line
+  ;
+
+line:
+    expr '\n'   { printf("Answer: %.2f\n", $1); }
+  | error '\n'  { yyerror("Invalid expression, try again."); yyclearin; }
+  ;
+
+expr:
+    expr '+' expr   { $$ = $1 + $3; }
+  | expr '-' expr   { $$ = $1 - $3; }
+  | expr '*' expr   { $$ = $1 * $3; }
+  | expr '/' expr   {
+                        if ($3 == 0) {
+                            yyerror("Division by zero");
+                            YYERROR;
+                        } else {
+                            $$ = $1 / $3;
+                        }
+                    }
+  | '-' expr %prec UMINUS { $$ = -$2; }
+  | '(' expr ')'          { $$ = $2; }   /* parentheses */
+  | NUMBER
+  ;
+
+%%
+
+void yyerror(const char *s) {
+    fprintf(stderr, "Error: %s\n", s);
+}
+
+int main() {
+    printf("Enter expressions with parentheses (Ctrl+Z to exit on Windows):\n");
+    yyparse();
+    return 0;
+}
+
+
+
+
