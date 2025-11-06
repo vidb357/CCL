@@ -1,0 +1,74 @@
+forloop.y
+
+%{
+#include <stdio.h>
+#include <stdlib.h>
+
+int yylex(void);
+int yyerror(const char *s);
+%}
+
+%token FOR LPAREN RPAREN SEMI ASSIGN RELOP NUM ID
+
+%%
+S : FOR LPAREN init SEMI cond SEMI incr RPAREN
+      { printf("Valid FOR loop syntax\n"); }
+  ;
+
+init : ID ASSIGN NUM ;
+
+cond : ID RELOP NUM ;
+
+incr : ID ASSIGN expr ;
+
+expr : ID
+     | NUM
+     | expr '+' expr
+     | expr '-' expr
+     | expr '*' expr
+     | expr '/' expr
+     ;
+%%
+
+int main() {
+    printf("Enter FOR loop statement:\n");
+    return yyparse();
+}
+
+int yyerror(const char *s) {
+    printf("Invalid syntax: %s\n", s);
+    return 0;
+}
+
+forloop.l>_______________________________
+%{
+#include "y.tab.h"
+#include <stdlib.h>
+%}
+
+%%
+"for"                { return FOR; }
+"("                  { return LPAREN; }
+")"                  { return RPAREN; }
+";"                  { return SEMI; }
+"="                  { return ASSIGN; }
+"<"|">"|"=="|"!="    { return RELOP; }
+[0-9]+               { yylval = atoi(yytext); return NUM; }
+[a-zA-Z_][a-zA-Z0-9_]* { return ID; }
+[ \t\n]+             ;  /* ignore whitespace */
+.                    { return yytext[0]; }
+%%
+
+int yywrap() { return 1; }
+
+
+_________T_____________
+flex forloop.l
+bison -dy forloop.y
+gcc lex.yy.c y.tab.c -o forloop.exe
+.\forloop.exe
+
+
+for(i=0;i<10;i=i+1)
+for(i<10;i=i+1)
+______________________________________________________________
