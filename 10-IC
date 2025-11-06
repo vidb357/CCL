@@ -1,0 +1,90 @@
+%{
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int temp_count = 0;
+int label_count = 0;
+
+typedef struct {
+    char code[50];
+} IC;
+
+IC gen_temp() {
+    IC t;
+    sprintf(t.code, "t%d", temp_count++);
+    return t;
+}
+
+IC gen_label() {
+    IC l;
+    sprintf(l.code, "L%d", label_count++);
+    return l;
+}
+
+void codegen_assign(char *lhs, IC rhs) {
+    printf("%s = %s\n", lhs, rhs.code);
+}
+
+void codegen_op(IC result, IC op1, char operator, IC op2) {
+    printf("%s = %s %c %s\n", result.code, op1.code, operator, op2.code);
+}
+
+void yyerror(const char *s) {
+    printf("Error: %s\n", s);
+}
+%}
+
+%union {
+    char *sval;
+    float fval;
+    IC ic;
+}
+
+%token <sval> ID
+%token <fval> NUM
+%token IF ELSE WHILE
+%token EQ NE GE LE GT LT
+%type <ic> expr stmt
+
+%%
+
+program:
+        | program stmt
+        ;
+
+stmt:
+        ID '=' expr ';'   { codegen_assign($1, $3); }
+    | IF '(' expr ')' '{' program '}'  { 
+            IC label1 = gen_label();
+            printf("if %s goto %s\n", $3.code, label1.code);
+            printf("goto END_IF_%d\n", label_count);
+            printf("%s:\n", label1.code);
+        }
+    | WHILE '(' expr ')' '{' program '}' {
+            IC label_start = gen_label();
+            IC label_end = gen_label();
+            printf("%s:\n", label_start.code);
+            printf("if %s goto %s\n", $3.code, label_end.code);
+            // body statements will print inside program
+            printf("%s:\n", label_end.code);
+        }
+    ;
+
+expr:
+        NUM       { $$ = gen_temp(); printf("%s = %.2f\n", $$ .code, $1); }
+    |   ID        { $$ = gen_temp(); printf("%s = %s\n", $$ .code, $1); }
+    | expr '+' expr { $$ = gen_temp(); codegen_op($$, $1, '+', $3); }
+    | expr '-' expr { $$ = gen_temp(); codegen_op($$, $1, '-', $3); }
+    | expr '*' expr { $$ = gen_temp(); codegen_op($$, $1, '*', $3); }
+    | expr '/' expr { $$ = gen_temp(); codegen_op($$, $1, '/', $3); }
+    | '(' expr ')'  { $$ = $2; }
+    ;
+
+%%
+
+int main() {
+    printf("Enter your program (end with Ctrl+Z / Ctrl+D):\n");
+    yyparse();
+    return 0;
+}
