@@ -1,0 +1,206 @@
+
+
+### 🧾 **YACC File – `whileloop.y`**
+
+```yacc
+%{
+#include <stdio.h>
+#include <stdlib.h>
+
+int yylex(void);
+int yyerror(const char *s);
+%}
+
+%token WHILE LPAREN RPAREN RELOP ASSIGN SEMI NUM ID
+
+%%
+S : WHILE LPAREN cond RPAREN stmt
+      { printf("Valid WHILE loop syntax\n"); }
+  ;
+
+cond : ID RELOP NUM
+     | ID RELOP ID
+     ;
+
+stmt : ID ASSIGN expr SEMI
+     ;
+
+expr : ID
+     | NUM
+     | expr '+' expr
+     | expr '-' expr
+     | expr '*' expr
+     | expr '/' expr
+     ;
+%%
+
+int main() {
+    printf("Enter WHILE loop statement:\n");
+    return yyparse();
+}
+
+int yyerror(const char *s) {
+    printf("Invalid syntax: %s\n", s);
+    return 0;
+}
+```
+
+---
+
+### 🧾 **LEX File – `whileloop.l`**
+
+```lex
+%{
+#include "y.tab.h"
+#include <stdlib.h>
+%}
+
+%%
+"while"             { return WHILE; }
+"("                 { return LPAREN; }
+")"                 { return RPAREN; }
+"<"|">"|"=="|"!="   { return RELOP; }
+"="                 { return ASSIGN; }
+";"                 { return SEMI; }
+[0-9]+              { yylval = atoi(yytext); return NUM; }
+[a-zA-Z_][a-zA-Z0-9_]* { return ID; }
+[ \t\n]+            ;   /* Ignore whitespace */
+.                   { return yytext[0]; }
+%%
+
+int yywrap(void) { return 1; }
+```
+
+### ▶️ Example Run
+
+```
+while(i<10)i=i+1;
+```
+
+✅ Output:
+
+```
+Valid WHILE loop syntax
+```
+
+---
+
+## ✅ 2️⃣ SWITCH-CASE Parser
+
+### 🧾 **YACC File – `switch.y`**
+
+```yacc
+%{
+#include <stdio.h>
+#include <stdlib.h>
+
+int yylex(void);
+int yyerror(const char *s);
+%}
+
+%token SWITCH CASE DEFAULT BREAK COLON SEMI LBRACE RBRACE NUM ID
+%token LPAREN RPAREN ASSIGN
+
+%%
+S : SWITCH LPAREN ID RPAREN LBRACE cases default_opt RBRACE
+      { printf("Valid SWITCH statement\n"); }
+  ;
+
+cases : cases case
+      | case
+      ;
+
+case : CASE NUM COLON stmt BREAK SEMI ;
+
+stmt : ID SEMI
+     | ID ASSIGN expr SEMI
+     ;
+
+expr : ID
+     | NUM
+     | expr '+' expr
+     | expr '-' expr
+     | expr '*' expr
+     | expr '/' expr
+     ;
+
+default_opt : DEFAULT COLON stmt
+            | /* empty */
+            ;
+%%
+
+int main() {
+    printf("Enter SWITCH statement:\n");
+    return yyparse();
+}
+
+int yyerror(const char *s) {
+    printf("Invalid syntax: %s\n", s);
+    return 0;
+}
+```
+
+---
+
+### 🧾 **LEX File – `switch.l`**
+
+```lex
+%{
+#include "y.tab.h"
+#include <stdlib.h>
+%}
+
+%%
+"switch"       { return SWITCH; }
+"case"         { return CASE; }
+"default"      { return DEFAULT; }
+"break"        { return BREAK; }
+"("            { return LPAREN; }
+")"            { return RPAREN; }
+"{"            { return LBRACE; }
+"}"            { return RBRACE; }
+":"            { return COLON; }
+";"            { return SEMI; }
+"="            { return ASSIGN; }
+[0-9]+         { yylval = atoi(yytext); return NUM; }
+[a-zA-Z_][a-zA-Z0-9_]* { return ID; }
+[ \t\n]+       ;  
+.              { return yytext[0]; }
+%%
+
+int yywrap(void) { return 1; }
+```
+
+### ▶️ Example Run
+
+```
+switch(x){case 1:y;break;default:y;}
+```
+
+✅ Output:
+
+```
+Valid SWITCH statement
+```
+
+---
+
+## 🧩 Compile & Run (same for both)
+
+### 🪟 Windows PowerShell
+
+```powershell
+flex whileloop.l
+bison -dy whileloop.y
+gcc lex.yy.c y.tab.c -o whileloop.exe
+.\whileloop.exe
+```
+
+### 🐧 Ubuntu
+
+```bash
+flex whileloop.l
+yacc -d whileloop.y
+gcc lex.yy.c y.tab.c -o whileloop
+./whileloop
+
