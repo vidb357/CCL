@@ -1,3 +1,182 @@
+(parenthesis)
+
+<intar.l>
+%{
+#include "intar.tab.h"
+#include <string.h>
+#define strdup _strdup
+%}
+
+digit   [0-9]
+letter  [a-zA-Z]
+
+%%
+{letter}({letter}|{digit})*   { yylval.sval = strdup(yytext); return ID; }
+{digit}+(\.{digit}+)?         { yylval.sval = strdup(yytext); return NUM; }
+[ \t]                         ;
+\n                            ;
+.                             { return yytext[0]; }
+%%
+
+int yywrap(void) { return 1; }
+
+
+______<intar.y>______________
+%{
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+int yylex(void);
+void yyerror(const char *s);
+
+int temp_count = 0;
+char temp[10];
+
+void codegen(char *op);
+void codegen_assign(char *id);
+void codegen_umin();
+void push(char *text);
+
+char stack[100][10];
+int top = -1;
+%}
+
+%union {
+    char *sval;
+}
+
+%token <sval> ID NUM
+%left '+' '-'
+%left '*' '/'
+%right UMINUS
+%type <sval> S E T F
+
+%%
+
+S : ID '=' E { codegen_assign($1); }
+  ;
+
+E : E '+' T { codegen("+"); }
+  | E '-' T { codegen("-"); }
+  | T
+  ;
+
+T : T '*' F { codegen("*"); }
+  | T '/' F { codegen("/"); }
+  | F
+  ;
+
+F : '(' E ')'
+  | '-' F %prec UMINUS { codegen_umin(); }
+  | ID { push($1); }
+  | NUM { push($1); }
+  ;
+
+%%
+
+int main(void) {
+    printf("Enter the expression : ");
+    yyparse();
+    return 0;
+}
+
+void yyerror(const char *s) {
+    fprintf(stderr, "Error: %s\n", s);
+}
+
+void push(char *text) {
+    strcpy(stack[++top], text);
+}
+
+void codegen(char *op) {
+    sprintf(temp, "t%d", temp_count++);
+    printf("%s = %s %s %s\n", temp, stack[top-1], op, stack[top]);
+    top--;
+    strcpy(stack[top], temp);
+}
+
+void codegen_assign(char *id) {
+    printf("%s = %s\n", id, stack[top]);
+    top = -1;
+    temp_count = 0;
+}
+
+void codegen_umin() {
+    sprintf(temp, "t%d", temp_count++);
+    printf("%s = -%s\n", temp, stack[top]);
+    strcpy(stack[top], temp);
+}
+
+
+__________________terminal__________
+bison -d -o intar.tab.c intar.y
+flex intar.l
+gcc intar.tab.c lex.yy.c -o intar.exe
+.\intar.exe
+________________________________
+
+______________input__________________
+Enter the expression : a=(k+8)*(c-s)
+
+_output____
+t0 = k + 8
+t1 = c - s
+t2 = t0 * t1
+a = t2
+
+
+
+
+
+
+_2-CONSTRUCTS_______________________
+
+<progconst.l>
+%{
+#include "progconst.tab.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void yyerror(const char *s);
+%}
+
+letter  [a-zA-Z]
+digit   [0-9]
+
+%%
+
+"if"        { return IF; }
+"while"     { return WHILE; }
+"else"      { return ELSE; }
+"=="        { return EQ; }
+"!="        { return NE; }
+">="        { return GE; }
+"<="        { return LE; }
+">"         { return GT; }
+"<"         { return LT; }
+{letter}({letter}|{digit})*  { yylval.sval = strdup(yytext); return ID; }
+{digit}+(\.{digit}+)?        { yylval.fval = atof(yytext); return NUM; }
+";"         { return ';'; }
+"="         { return '='; }
+"+"         { return '+'; }
+"-"         { return '-'; }
+"*"         { return '*'; }
+"/"         { return '/'; }
+\(          { return '('; }
+\)          { return ')'; }
+"{"         { return '{'; }
+"}"         { return '}'; }
+[ \t\n]    ;
+.          { return yytext[0]; }
+
+%%
+int yywrap() { return 1; }
+
+
+<progconst.y>
 %{
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,3 +267,10 @@ int main() {
     yyparse();
     return 0;
 }
+
+
+______terminal_______
+bison -d -o progconst.tab.c progconst.y
+flex progconst.l
+gcc progconst.tab.c lex.yy.c -o progconst.exe
+.\progconst.exe
