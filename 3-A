@@ -1,0 +1,113 @@
+%{
+#include <stdio.h>
+int count = 0;
+%}
+%%
+[A][a-zA-Z]*    { count++; }
+.|\n             { /* ignore other characters */ }
+%%
+int main() {
+    printf("Enter the input (Ctrl+Z then Enter to end):\n");
+    yylex();
+    printf("\nNumber of words starting with 'A'	: %d\n", count);
+    return 0;
+}
+
+int yywrap() {
+    return 1;
+}
+
+
+
+Practice Questions:
+
+1. Same as above
+
+2. Start and ending with ‘a’
+%{
+#include <stdio.h>
+
+int count = 0;
+%}
+
+%%
+a[a-zA-Z]*a     { count++; }        // Start with 'a', end with 'a'
+.|\n            { /* Ignore other characters */ }
+%%
+
+int main() {
+    printf("Enter input (Press Ctrl+Z then Enter to end):\n");
+    yylex();
+    printf("\nNumber of words starting and ending with lowercase 'a': %d\n", count);
+    return 0;
+}
+
+int yywrap() {
+    return 1;
+}
+
+
+____word___________
+1. Implement a LEX program for finding frequency of a particular word in the input file.
+
+%{
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+int count = 0;
+char target[100];
+
+// Convert a string to lowercase
+void to_lower(char* dest, const char* src) {
+    int i;
+    for (i = 0; src[i]; i++) {
+        dest[i] = tolower(src[i]);
+    }
+    dest[i] = '\0';
+}
+%}
+
+%%
+[a-zA-Z]+  {
+                char temp[100];
+                to_lower(temp, yytext);     // Convert token to lowercase
+
+                if (strcmp(temp, target) == 0)
+                    count++;
+           }
+
+.|\n       { /* Ignore other characters */ }
+%%
+
+int main() {
+    char input_word[100];
+    printf("Enter the word to find (case-insensitive): ");
+    scanf("%s", input_word);
+
+    to_lower(target, input_word);  // Convert target word to lowercase
+
+    printf("Enter the input (Press Ctrl+Z then Enter to end):\n");
+    yylex();  // Start lexical analysis
+
+    printf("\nFrequency of word '%s' (case-insensitive): %d\n", input_word, count);
+    return 0;
+}
+
+int yywrap() {
+    return 1;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
